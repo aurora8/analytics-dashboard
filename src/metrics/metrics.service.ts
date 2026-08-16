@@ -13,7 +13,7 @@ export class MetricsService {
     @InjectRepository(VerificationSession) private verificationRepo: Repository<VerificationSession>,
   ) {}
 
-  async getSummary() {
+  async getOverview(query: { from?: string; to?: string; issuerId?: string; verifierId?: string }) {
     const [totalAuthEvents, failedAuthEvents, totalIssuance, totalVerification] = await Promise.all([
       this.authEventsRepo.count(),
       this.authEventsRepo.count({ where: { success: false } }),
@@ -27,5 +27,49 @@ export class MetricsService {
       totalIssuanceSessions: totalIssuance,
       totalVerificationSessions: totalVerification,
     };
+  }
+
+  async getAuthMetrics(query: { from?: string; to?: string }) {
+    const [totalAttempts, successCount, failureCount] = await Promise.all([
+      this.authEventsRepo.count(),
+      this.authEventsRepo.count({ where: { success: true } }),
+      this.authEventsRepo.count({ where: { success: false } }),
+    ]);
+
+    return {
+      totalAttempts,
+      successCount,
+      failureCount,
+    };
+  }
+
+  async getFunnel(kind: string, query: { from?: string; to?: string; issuerId?: string; verifierId?: string }) {
+    if (kind === 'issuance') {
+      const total = await this.issuanceRepo.count();
+      const completed = await this.issuanceRepo.count({ where: { status: 'completed' } });
+      return { kind, total, completed };
+    }
+
+    if (kind === 'verification') {
+      const total = await this.verificationRepo.count();
+      const approved = await this.verificationRepo.count({ where: { status: 'approved' } });
+      return { kind, total, approved };
+    }
+
+    return { kind, total: 0 };
+  }
+
+  async getLatency(kind: string, query: { from?: string; to?: string; issuerId?: string; verifierId?: string }) {
+    if (kind === 'issuance') {
+      const sessions = await this.issuanceRepo.find();
+      return { kind, averageLatencyMs: 0, sampleSize: sessions.length };
+    }
+
+    if (kind === 'verification') {
+      const sessions = await this.verificationRepo.find();
+      return { kind, averageLatencyMs: 0, sampleSize: sessions.length };
+    }
+
+    return { kind, averageLatencyMs: 0, sampleSize: 0 };
   }
 }

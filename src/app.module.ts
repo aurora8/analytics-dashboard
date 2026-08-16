@@ -6,6 +6,7 @@ import { AuthEventsModule } from './auth-events/auth-events.module';
 import { IssuanceSessionsModule } from './issuance-sessions/issuance-sessions.module';
 import { VerificationSessionsModule } from './verification-sessions/verification-sessions.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { LoggingModule } from './logging/logging.module';
 
 @Module({
   imports: [
