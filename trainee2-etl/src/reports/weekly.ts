@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createObjectCsvWriter } from 'csv-writer';
 import {
   extractAuthEvents,
   extractVerificationSessions,
@@ -11,11 +12,6 @@ import { runAllFraudRules } from '../fraud/detect';
 import { summarizeIpLocations } from '../geo/analyze';
 import { pool } from '../db/pool';
 
-/**
- * Builds the weekly PDF summary: adoption (session volume), fraud
- * flags, and latency — the three things the task list asks for.
- * Run with: npm run report:weekly
- */
 async function main() {
   const to = new Date();
   const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -47,7 +43,7 @@ async function main() {
 
   doc.fontSize(20).text('Weekly Analytics Report', { align: 'center' });
   doc.fontSize(10).fillColor('gray').text(
-    `${from.toDateString()} — ${to.toDateString()}`,
+    `${from.toDateString()} - ${to.toDateString()}`,
     { align: 'center' },
   );
   doc.moveDown(2);
@@ -85,9 +81,44 @@ async function main() {
   }
 
   doc.end();
-
   await new Promise((resolve) => doc.on('end', resolve));
-  console.log(`Weekly report written to ${outPath}`);
+  console.log(`Weekly PDF report written to ${outPath}`);
+
+  const csvPath = path.join(outDir, `weekly-report-${to.toISOString().slice(0, 10)}.csv`);
+  const csvWriter = createObjectCsvWriter({
+    path: csvPath,
+    header: [
+      { id: 'section', title: 'Section' },
+      { id: 'metric', title: 'Metric' },
+      { id: 'value', title: 'Value' },
+    ],
+  });
+
+  const csvRows = [
+    { section: 'Adoption', metric: 'Verification sessions', value: verClean.length },
+    { section: 'Adoption', metric: 'Issuance sessions', value: issClean.length },
+    { section: 'Adoption', metric: 'Auth events', value: authClean.length },
+    { section: 'Latency', metric: 'Verification avg latency (ms)', value: verAvg ?? 'no data' },
+    { section: 'Latency', metric: 'Issuance avg latency (ms)', value: issAvg ?? 'no data' },
+    ...(fraudFlags.length === 0
+      ? [{ section: 'Fraud Flags', metric: 'No fraud flags raised this week', value: '' }]
+      : fraudFlags.map((f) => ({
+          section: 'Fraud Flags',
+          metric: `User ${f.userId}: ${f.reason}`,
+          value: f.count,
+        }))),
+    ...(geoSummary.length === 0
+      ? [{ section: 'Geo Breakdown', metric: 'No IP-tagged events this week', value: '' }]
+      : geoSummary.map((g) => ({
+          section: 'Geo Breakdown',
+          metric: `${g.country}${g.region ? '/' + g.region : ''}${g.city ? '/' + g.city : ''}`,
+          value: g.count,
+        }))),
+  ];
+
+  await csvWriter.writeRecords(csvRows);
+  console.log(`Weekly CSV report written to ${csvPath}`);
+
   await pool.end();
 }
 
@@ -97,7 +128,7 @@ function section(doc: PDFKit.PDFDocument, title: string) {
 }
 
 function bullet(doc: PDFKit.PDFDocument, text: string) {
-  doc.fontSize(11).fillColor('black').text(`•  ${text}`);
+  doc.fontSize(11).fillColor('black').text(`-  ${text}`);
 }
 
 main().catch((err) => {

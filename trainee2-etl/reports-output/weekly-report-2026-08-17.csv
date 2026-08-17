@@ -1,0 +1,9 @@
+Section,Metric,Value
+Adoption,Verification sessions,0
+Adoption,Issuance sessions,0
+Adoption,Auth events,6
+Latency,Verification avg latency (ms),no data
+Latency,Issuance avg latency (ms),no data
+Fraud Flags,No fraud flags raised this week,
+Geo Breakdown,,4
+Geo Breakdown,US,2
