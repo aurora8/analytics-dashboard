@@ -1,60 +1,50 @@
-# Trainee 1 — Backend & APIs
+# dashboard-backend (Trainee 1 — Backend & APIs)
 
-Covers the four Trainee 1 deliverables:
+NestJS + TypeORM + Postgres. Logs auth/issuance/verification events and
+exposes aggregated metrics for the dashboard frontend.
 
-1. **NestJS logging** — `src/logging/` — `LoggingService` records login
-   attempts, login/MFA success or failure into `auth_events`. Call it
-   from wherever the real auth flow lives (`recordLoginAttempt`,
-   `recordLoginResult`, `recordMfaResult`).
-2. **Database schema** — `init.sql` — tables for issuers, verifiers,
-   DIDs, verification sessions, issuance sessions, and auth/MFA
-   events, matched by the TypeORM entities in `src/entities/`.
-3. **`/metrics` API endpoints** — `src/metrics/` — JSON for the
-   dashboard:
-   - `GET /metrics/overview` — top-level counts
-   - `GET /metrics/auth` — login/MFA success vs failure counts
-   - `GET /metrics/funnel/:kind` (`verification` | `issuance`) —
-     selector → deeplink → wallet approval → token issuance funnel
-   - `GET /metrics/latency/:kind` — average latency per day
-   - All accept `?from=&to=&issuerId=&verifierId=` filters.
-4. **Tests** — `test/metrics.service.spec.ts` — unit tests for the
-   metrics queries against a mocked repository (no DB needed to run
-   them).
+## Setup
 
-## Running locally
-
-We don't have the real staging DB connection yet, so this ships with
-a local Postgres via Docker (same pattern as the IMDb import guide —
-container + init script + verify with a query) as a placeholder:
+1. Copy `.env.example` to `.env` and adjust if your Postgres isn't on
+   the default port.
+2. `npm install`
+3. Make sure Postgres is running (see docker command below).
+4. `npm run start:dev` — tables are auto-created on first boot
+   (`synchronize: true`; switch this off in favor of migrations before
+   this ever points at a shared/production database).
 
 ```bash
-docker compose up -d          # starts Postgres and loads init.sql
-npm install
-cp .env.example .env          # DATABASE_URL points at the local container
-npm run start:dev
-curl http://localhost:3000/metrics/overview
+docker run --name dashboard-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=dashboard -p 5433:5432 -d postgres:15
 ```
 
-Run tests:
+## Logging endpoints (write)
+
+- `POST /auth-events` — `{ eventType, userId?, issuerId?, verifierId?, ipAddress?, metadata? }`
+  `eventType` is one of `login_attempt | login_success | login_failure | mfa_success | mfa_failure`.
+- `POST /issuance-sessions` — `{ issuerId, credentialType? }` → starts a session.
+- `PATCH /issuance-sessions/:id` — `{ status: "completed" | "failed" }` → closes it and records latency.
+- `POST /verification-sessions` — `{ verifierId }` → starts a session at the `selector` stage.
+- `PATCH /verification-sessions/:id` — `{ stage?, status? }` → advances the funnel stage and/or closes the session.
+  `stage` is one of `selector | deeplink | wallet_approval | token_issuance`.
+
+## Metrics endpoints (read, for the dashboard)
+
+All accept optional query filters: `startDate`, `endDate` (ISO 8601), `issuerId`, `verifierId`.
+
+- `GET /metrics/overview` — top-line counts across auth/issuance/verification.
+- `GET /metrics/auth` — login/MFA success & failure counts, rates, and a per-day breakdown.
+- `GET /metrics/funnel/:kind` — `:kind` is `issuance` or `verification`. Verification returns
+  cumulative counts through selector → deeplink → wallet_approval → token_issuance.
+- `GET /metrics/latency/:kind` — `:kind` is `issuance` or `verification`. avg/min/max latency
+  (ms) plus a per-day average.
+
+## Tests
+
+`npm test` runs `test/metrics.service.spec.ts` against a real Postgres database
+(not a mocked query builder), so the SQL aggregations are actually exercised.
+It uses its own database so it never touches dev data — set `TEST_DB_NAME` if
+you don't want the default `dashboard_test`, and create that database once:
 
 ```bash
-npm test
+docker exec -it dashboard-postgres psql -U postgres -c "CREATE DATABASE dashboard_test;"
 ```
-
-## Swapping in the real staging DB
-
-Once we get the staging connection URL, set `DATABASE_URL` in `.env`
-to it and drop `docker-compose.yml`/`init.sql`. If the real schema's
-column or table names differ from `init.sql`'s guesses, update the
-entities in `src/entities/` to match — the service/controller layer
-above them doesn't need to change.
-
-## Notes / assumptions
-
-- Session `status` is modeled as the furthest funnel stage reached
-  (`started` → `deeplink_opened` → `wallet_approved` →
-  `token_issued`, plus `failed`/`expired`). Adjust if the real
-  verifier/issuer flow uses different stage names.
-- `synchronize: false` in `app.module.ts` — schema changes should go
-  through `init.sql` or a migration, not TypeORM auto-sync, once this
-  is shared across branches.

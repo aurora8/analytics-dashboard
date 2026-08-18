@@ -1,23 +1,19 @@
-import { IsOptional, IsISO8601, IsUUID } from 'class-validator';
+import { IsISO8601, IsOptional, IsString } from 'class-validator';
 
-/**
- * Shared query params for /metrics endpoints — matches the filters
- * Trainee 3 needs on the frontend (issuer, verifier, date range).
- */
 export class MetricsQueryDto {
   @IsOptional()
   @IsISO8601()
-  from?: string;
+  startDate?: string;
 
   @IsOptional()
   @IsISO8601()
-  to?: string;
+  endDate?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   issuerId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   verifierId?: string;
 }

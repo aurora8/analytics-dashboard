@@ -1,31 +1,40 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Issuer } from './issuer.entity';
-import { SessionStatus } from './verification-session.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
-@Entity('issuance_sessions')
+export type IssuanceStatus = 'started' | 'completed' | 'failed';
+
+/**
+ * One row per credential-issuance session, from start to completion/failure.
+ * latencyMs is filled in when the session is completed or failed.
+ */
+@Entity('issuance_session')
 export class IssuanceSession {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ManyToOne(() => Issuer)
-  @JoinColumn({ name: 'issuer_id' })
-  issuer: Issuer;
-
-  @Column({ name: 'issuer_id' })
+  @Index()
+  @Column({ type: 'varchar', length: 128 })
   issuerId: string;
 
-  @Column({ name: 'holder_did' })
-  holderDid: string;
+  @Index()
+  @Column({ type: 'varchar', length: 32, default: 'started' })
+  status: IssuanceStatus;
 
-  @Column()
-  status: SessionStatus;
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  credentialType: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @Index()
+  @CreateDateColumn({ type: 'timestamptz' })
+  startedAt: Date;
 
-  @Column({ name: 'completed_at', nullable: true })
-  completedAt: Date;
+  @Column({ type: 'timestamptz', nullable: true })
+  completedAt: Date | null;
 
-  @Column({ name: 'latency_ms', nullable: true })
-  latencyMs: number;
+  @Column({ type: 'int', nullable: true })
+  latencyMs: number | null;
 }
