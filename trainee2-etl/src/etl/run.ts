@@ -1,43 +1,51 @@
+import * as path from 'path';
 import {
   extractAuthEvents,
-  extractVerificationSessions,
   extractIssuanceSessions,
+  extractVerificationSessions,
 } from './extract';
-import { cleanAuthEvents, cleanSessions } from './transform';
-import { pool } from '../db/pool';
+import { summarizeAdoption, summarizeLatency } from './transform';
+import { detectFraud } from '../fraud/detect';
+import { analyzeGeo } from '../geo/analyze';
+import { generateWeeklyReport } from '../reports/weekly';
+import { closePool } from '../db/pool';
 
-/**
- * Entry point: `npm run etl -- --days 7`
- * Pulls the last N days of logs, cleans them, and prints a quick
- * summary so you can see it's actually pulling real data. Other
- * scripts (fraud, geo, reports) import extract/transform directly
- * rather than shelling out to this file.
- */
-async function main() {
-  const days = Number(process.argv.find((a) => a.startsWith('--days='))?.split('=')[1] ?? 7);
-  const to = new Date();
-  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-
-  console.log(`Extracting logs from ${from.toISOString()} to ${to.toISOString()}...`);
-
-  const [authRaw, verRaw, issRaw] = await Promise.all([
-    extractAuthEvents(from, to),
-    extractVerificationSessions(from, to),
-    extractIssuanceSessions(from, to),
+async function main(): Promise<void> {
+  console.log('Extracting data...');
+  const [authEvents, issuanceSessions, verificationSessions] = await Promise.all([
+    extractAuthEvents(),
+    extractIssuanceSessions(),
+    extractVerificationSessions(),
   ]);
+  console.log(
+    `  ${authEvents.length} auth events, ${issuanceSessions.length} issuance sessions, ${verificationSessions.length} verification sessions`,
+  );
 
-  const authClean = cleanAuthEvents(authRaw);
-  const verClean = cleanSessions(verRaw);
-  const issClean = cleanSessions(issRaw);
+  console.log('\nAdoption:');
+  console.log(JSON.stringify(summarizeAdoption(issuanceSessions, verificationSessions), null, 2));
 
-  console.log(`Auth events: ${authRaw.length} extracted -> ${authClean.length} clean`);
-  console.log(`Verification sessions: ${verRaw.length} extracted -> ${verClean.length} clean`);
-  console.log(`Issuance sessions: ${issRaw.length} extracted -> ${issClean.length} clean`);
+  console.log('\nLatency (issuance):');
+  console.log(JSON.stringify(summarizeLatency(issuanceSessions), null, 2));
+  console.log('Latency (verification):');
+  console.log(JSON.stringify(summarizeLatency(verificationSessions), null, 2));
 
-  await pool.end();
+  console.log('\nFraud flags:');
+  console.log(JSON.stringify(detectFraud(authEvents), null, 2));
+
+  console.log('\nGeo breakdown (auth + verification activity):');
+  console.log(JSON.stringify(analyzeGeo([...authEvents, ...verificationSessions]), null, 2));
+
+  console.log('\nGenerating weekly report (PDF + CSV)...');
+  const outputDir = path.join(__dirname, '..', '..', 'output');
+  const result = await generateWeeklyReport(outputDir);
+  console.log(`  PDF: ${result.pdfPath}`);
+  console.log(`  CSV: ${result.csvPath}`);
+  console.log(`  ${result.flaggedUserCount} user(s) flagged`);
+
+  await closePool();
 }
 
 main().catch((err) => {
-  console.error('ETL run failed:', err);
-  process.exit(1);
+  console.error(err);
+  process.exitCode = 1;
 });

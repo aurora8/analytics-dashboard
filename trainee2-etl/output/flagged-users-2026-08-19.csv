@@ -1,4 +1,0 @@
-userId,reason,count,detail
-user-fraud-1,excessive_mfa_failures,4,4 failed MFA/OTP attempts (threshold 3)
-user-fraud-2,excessive_login_failures,6,6 failed login attempts (threshold 5)
-user-fraud-3,multiple_ips,4,Authenticated from 4 distinct IP addresses (threshold 3)
