@@ -1,60 +1,56 @@
-import {
-  RawIssuanceSession,
-  RawVerificationSession,
-} from './extract';
+import { AuthEventRow, SessionRow } from './extract';
 
-export interface AdoptionSummary {
-  issuance: { total: number; started: number; completed: number; failed: number };
-  verification: { total: number; inProgress: number; completed: number; failed: number };
+export interface CleanAuthEvent {
+  userId: string;
+  eventType: string;
+  ip: string | null;
+  timestamp: Date;
 }
 
-export function summarizeAdoption(
-  issuanceSessions: RawIssuanceSession[],
-  verificationSessions: RawVerificationSession[],
-): AdoptionSummary {
-  const issuance = { total: 0, started: 0, completed: 0, failed: 0 };
-  for (const s of issuanceSessions) {
-    issuance.total += 1;
-    if (s.status === 'started') issuance.started += 1;
-    else if (s.status === 'completed') issuance.completed += 1;
-    else if (s.status === 'failed') issuance.failed += 1;
-  }
-
-  const verification = { total: 0, inProgress: 0, completed: 0, failed: 0 };
-  for (const s of verificationSessions) {
-    verification.total += 1;
-    if (s.status === 'in_progress') verification.inProgress += 1;
-    else if (s.status === 'completed') verification.completed += 1;
-    else if (s.status === 'failed') verification.failed += 1;
-  }
-
-  return { issuance, verification };
+export interface CleanSession {
+  ownerId: string;
+  holderDid: string;
+  status: string;
+  latencyMs: number | null;
+  durationBucket: 'fast' | 'normal' | 'slow' | 'unknown';
+  timestamp: Date;
 }
 
-export interface LatencyStats {
-  avgLatencyMs: number | null;
-  minLatencyMs: number | null;
-  maxLatencyMs: number | null;
-  sampleSize: number;
+const SLOW_LATENCY_MS = 5000;
+const FAST_LATENCY_MS = 1000;
+
+/**
+ * The "T" (transform) step: drop obviously bad rows, normalize field
+ * names/casing, and derive a couple of fields analysis and reports
+ * both need repeatedly (e.g. latency buckets).
+ */
+export function cleanAuthEvents(rows: AuthEventRow[]): CleanAuthEvent[] {
+  return rows
+    .filter((r) => !!r.userId && !!r.eventType) // drop rows missing the fields we key on
+    .map((r) => ({
+      userId: r.userId,
+      eventType: r.eventType,
+      ip: r.ipAddress?.trim() || null,
+      timestamp: r.createdAt,
+    }));
 }
 
-/** Works for either issuance or verification sessions — both share the same latencyMs shape. */
-export function summarizeLatency(
-  sessions: { latencyMs: number | null }[],
-): LatencyStats {
-  const values = sessions
-    .map((s) => s.latencyMs)
-    .filter((v): v is number => v !== null && v !== undefined);
+export function cleanSessions(rows: SessionRow[]): CleanSession[] {
+  return rows
+    .filter((r) => !!r.ownerId)
+    .map((r) => ({
+      ownerId: r.ownerId,
+      holderDid: r.holderDid,
+      status: r.status,
+      latencyMs: r.latencyMs,
+      durationBucket: bucketLatency(r.latencyMs),
+      timestamp: r.createdAt,
+    }));
+}
 
-  if (values.length === 0) {
-    return { avgLatencyMs: null, minLatencyMs: null, maxLatencyMs: null, sampleSize: 0 };
-  }
-
-  const sum = values.reduce((a, b) => a + b, 0);
-  return {
-    avgLatencyMs: Math.round(sum / values.length),
-    minLatencyMs: Math.min(...values),
-    maxLatencyMs: Math.max(...values),
-    sampleSize: values.length,
-  };
+function bucketLatency(ms: number | null): CleanSession['durationBucket'] {
+  if (ms == null) return 'unknown';
+  if (ms <= FAST_LATENCY_MS) return 'fast';
+  if (ms >= SLOW_LATENCY_MS) return 'slow';
+  return 'normal';
 }

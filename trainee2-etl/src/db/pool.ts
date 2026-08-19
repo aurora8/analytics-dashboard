@@ -3,14 +3,12 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+/**
+ * Shared connection pool for every script in this package. Same
+ * schema Trainee 1 set up (issuers, verifiers, dids, verification_sessions,
+ * issuance_sessions, auth_events) — point DATABASE_URL at the real
+ * staging DB once we have it, nothing else here changes.
+ */
 export const pool = new Pool({
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  user: process.env.DB_USER ?? 'postgres',
-  password: process.env.DB_PASSWORD ?? 'postgres',
-  database: process.env.DB_NAME ?? 'verifier_dashboard',
+  connectionString: process.env.DATABASE_URL,
 });
-
-export async function closePool(): Promise<void> {
-  await pool.end();
-}
