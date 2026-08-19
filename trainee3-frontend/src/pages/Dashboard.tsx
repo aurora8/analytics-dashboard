@@ -9,7 +9,7 @@ import { getAuthMetrics, getFunnel, getLatency, type MetricsFilters } from "../a
 export default function Dashboard() {
   const [filters, setFilters] = useState<MetricsFilters>({});
   const [authData, setAuthData] = useState<{ label: string; success: number; failure: number }[]>([]);
-  const [funnelData, setFunnelData] = useState<{ kind: string; stages: string[]; funnel: Record<string, number>; total: number } | null>(null);
+  const [funnelData, setFunnelData] = useState<{ kind: string; steps: { step: string; count: number }[] } | null>(null);
   const [latencyData, setLatencyData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,10 +29,13 @@ export default function Dashboard() {
         ];
         setAuthData(transformed);
         setFunnelData(funnel);
-        setLatencyData(latency);
+        // The latency endpoint returns a summary object with a `daily`
+        // array inside it — the chart wants the per-day series, not the
+        // whole summary.
+        setLatencyData(latency?.daily ?? []);
       })
       .catch((err) => {
-        setError("Could not load metrics — is the backend running on localhost:3000?");
+        setError("Could not load metrics - is the backend running on localhost:3000?");
         console.error(err);
       })
       .finally(() => setLoading(false));
