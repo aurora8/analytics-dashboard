@@ -38,6 +38,10 @@ export class LoggingService {
     return this.recordAuthEvent(userId, 'login_attempt', { ipAddress, userAgent });
   }
 
+  recordMfaChallenge(userId: string, ipAddress?: string) {
+    return this.recordAuthEvent(userId, 'mfa_challenge', { ipAddress });
+  }
+
   recordLoginResult(userId: string, success: boolean, ipAddress?: string) {
     return this.recordAuthEvent(userId, success ? 'login_success' : 'login_failure', { ipAddress });
   }
