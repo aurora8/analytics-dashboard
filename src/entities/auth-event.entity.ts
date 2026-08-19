@@ -1,33 +1,50 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export type AuthEventType =
   | 'login_attempt'
   | 'login_success'
   | 'login_failure'
-  | 'mfa_challenge'
   | 'mfa_success'
   | 'mfa_failure';
 
-@Entity('auth_events')
+/**
+ * A single authentication-related event: a login attempt/result or an
+ * MFA result. One row per event, so metrics are computed by aggregating
+ * rows rather than mutating a running counter.
+ */
+@Entity('auth_event')
 export class AuthEvent {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Column({ name: 'user_id' })
-  userId: string;
-
-  @Column({ name: 'event_type' })
+  @Index()
+  @Column({ type: 'varchar', length: 32 })
   eventType: AuthEventType;
 
-  @Column({ name: 'ip_address', nullable: true })
-  ipAddress: string;
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  userId: string | null;
 
-  @Column({ name: 'user_agent', nullable: true })
-  userAgent: string;
+  @Index()
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  issuerId: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  verifierId: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  ipAddress: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown> | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Index()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

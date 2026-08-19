@@ -1,32 +1,53 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Verifier } from './verifier.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
-export type SessionStatus = 'started' | 'deeplink_opened' | 'wallet_approved' | 'token_issued' | 'failed' | 'expired';
+/** Furthest funnel stage this session has reached. */
+export type VerificationStage =
+  | 'selector'
+  | 'deeplink'
+  | 'wallet_approval'
+  | 'token_issuance';
 
-@Entity('verification_sessions')
+export type VerificationStatus = 'in_progress' | 'completed' | 'failed';
+
+/**
+ * One row per verification session. `stage` tracks the furthest point
+ * reached in the funnel (selector -> deeplink -> wallet_approval ->
+ * token_issuance); `status` tracks whether it's still moving, finished,
+ * or dropped off / failed.
+ */
+@Entity('verification_session')
 export class VerificationSession {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ManyToOne(() => Verifier)
-  @JoinColumn({ name: 'verifier_id' })
-  verifier: Verifier;
-
-  @Column({ name: 'verifier_id' })
+  @Index()
+  @Column({ type: 'varchar', length: 128 })
   verifierId: string;
 
-  @Column({ name: 'holder_did' })
-  holderDid: string;
+  @Index()
+  @Column({ type: 'varchar', length: 32, default: 'selector' })
+  stage: VerificationStage;
 
-  @Column()
-  status: SessionStatus;
+  @Index()
+  @Column({ type: 'varchar', length: 32, default: 'in_progress' })
+  status: VerificationStatus;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  ipAddress: string | null;
 
-  @Column({ name: 'completed_at', nullable: true })
-  completedAt: Date;
+  @Index()
+  @CreateDateColumn({ type: 'timestamptz' })
+  startedAt: Date;
 
-  @Column({ name: 'latency_ms', nullable: true })
-  latencyMs: number;
+  @Column({ type: 'timestamptz', nullable: true })
+  completedAt: Date | null;
+
+  @Column({ type: 'int', nullable: true })
+  latencyMs: number | null;
 }
