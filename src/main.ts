@@ -1,11 +1,20 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-  app.enableCors(); // dashboard frontend runs on a different port/origin
-  await app.listen(process.env.PORT ?? 3000);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+  app.enableCors();
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`dashboard-backend listening on port ${port}`);
 }
 bootstrap();

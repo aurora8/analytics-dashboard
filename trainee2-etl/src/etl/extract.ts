@@ -1,60 +1,106 @@
 import { pool } from '../db/pool';
 
-export interface AuthEventRow {
-  id: string;
-  userId: string;
+export interface RawAuthEvent {
+  id: number;
   eventType: string;
+  userId: string | null;
+  issuerId: string | null;
+  verifierId: string | null;
   ipAddress: string | null;
   createdAt: Date;
 }
 
-export interface SessionRow {
-  id: string;
-  ownerId: string; // verifierId or issuerId
-  holderDid: string;
+export interface RawIssuanceSession {
+  id: number;
+  issuerId: string;
   status: string;
-  createdAt: Date;
+  credentialType: string | null;
+  startedAt: Date;
   completedAt: Date | null;
   latencyMs: number | null;
 }
 
-/**
- * Pulls raw auth events for a date range. This is the "E" (extract)
- * step — no cleaning or transformation yet, just getting rows out of
- * the staging DB.
- */
-export async function extractAuthEvents(from: Date, to: Date): Promise<AuthEventRow[]> {
-  const { rows } = await pool.query(
-    `SELECT id, user_id AS "userId", event_type AS "eventType",
-            ip_address AS "ipAddress", created_at AS "createdAt"
-     FROM auth_events
-     WHERE created_at BETWEEN $1 AND $2
-     ORDER BY created_at ASC`,
-    [from, to],
+export interface RawVerificationSession {
+  id: number;
+  verifierId: string;
+  stage: string;
+  status: string;
+  ipAddress: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  latencyMs: number | null;
+}
+
+export interface DateRange {
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export async function extractAuthEvents(
+  range: DateRange = {},
+): Promise<RawAuthEvent[]> {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (range.startDate) {
+    params.push(range.startDate);
+    clauses.push(`"createdAt" >= $${params.length}`);
+  }
+  if (range.endDate) {
+    params.push(range.endDate);
+    clauses.push(`"createdAt" <= $${params.length}`);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const { rows } = await pool.query<RawAuthEvent>(
+    `SELECT id, "eventType", "userId", "issuerId", "verifierId", "ipAddress", "createdAt"
+     FROM auth_event ${where}
+     ORDER BY "createdAt" ASC`,
+    params,
   );
   return rows;
 }
 
-export async function extractVerificationSessions(from: Date, to: Date): Promise<SessionRow[]> {
-  const { rows } = await pool.query(
-    `SELECT id, verifier_id AS "ownerId", holder_did AS "holderDid", status,
-            created_at AS "createdAt", completed_at AS "completedAt", latency_ms AS "latencyMs"
-     FROM verification_sessions
-     WHERE created_at BETWEEN $1 AND $2
-     ORDER BY created_at ASC`,
-    [from, to],
+export async function extractIssuanceSessions(
+  range: DateRange = {},
+): Promise<RawIssuanceSession[]> {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (range.startDate) {
+    params.push(range.startDate);
+    clauses.push(`"startedAt" >= $${params.length}`);
+  }
+  if (range.endDate) {
+    params.push(range.endDate);
+    clauses.push(`"startedAt" <= $${params.length}`);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const { rows } = await pool.query<RawIssuanceSession>(
+    `SELECT id, "issuerId", status, "credentialType", "startedAt", "completedAt", "latencyMs"
+     FROM issuance_session ${where}
+     ORDER BY "startedAt" ASC`,
+    params,
   );
   return rows;
 }
 
-export async function extractIssuanceSessions(from: Date, to: Date): Promise<SessionRow[]> {
-  const { rows } = await pool.query(
-    `SELECT id, issuer_id AS "ownerId", holder_did AS "holderDid", status,
-            created_at AS "createdAt", completed_at AS "completedAt", latency_ms AS "latencyMs"
-     FROM issuance_sessions
-     WHERE created_at BETWEEN $1 AND $2
-     ORDER BY created_at ASC`,
-    [from, to],
+export async function extractVerificationSessions(
+  range: DateRange = {},
+): Promise<RawVerificationSession[]> {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (range.startDate) {
+    params.push(range.startDate);
+    clauses.push(`"startedAt" >= $${params.length}`);
+  }
+  if (range.endDate) {
+    params.push(range.endDate);
+    clauses.push(`"startedAt" <= $${params.length}`);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const { rows } = await pool.query<RawVerificationSession>(
+    `SELECT id, "verifierId", stage, status, "ipAddress", "startedAt", "completedAt", "latencyMs"
+     FROM verification_session ${where}
+     ORDER BY "startedAt" ASC`,
+    params,
   );
   return rows;
 }

@@ -1,37 +1,35 @@
 {
   "name": "trainee2-etl",
-  "version": "0.1.0",
-  "description": "Data & ETL (Trainee 2) — extraction, fraud rules, geo/IP analysis, weekly reports",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
-    "etl": "ts-node src/etl/run.ts",
-    "fraud": "ts-node src/fraud/detect.ts",
-    "geo": "ts-node src/geo/analyze.ts",
-    "report:weekly": "ts-node src/reports/weekly.ts",
+    "build": "tsc",
+    "run": "ts-node src/etl/run.ts",
     "test": "jest"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "pg": "^8.11.0",
-    "dotenv": "^16.4.0",
-    "csv-writer": "^1.6.0",
-    "pdfkit": "^0.15.0",
-    "geoip-lite": "^1.4.10"
+    "csv-stringify": "^6.8.3",
+    "dotenv": "^17.4.2",
+    "geoip-lite": "^1.4.10",
+    "pdfkit": "^0.19.1",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/pg": "^8.11.0",
-    "@types/pdfkit": "^0.13.0",
     "@types/geoip-lite": "^1.4.4",
-    "@types/jest": "^29.5.0",
-    "typescript": "^5.3.0",
-    "ts-node": "^10.9.0",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.1.0"
-  },
-  "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
-    "rootDir": ".",
-    "testRegex": ".spec.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "testEnvironment": "node"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.20.1",
+    "@types/pdfkit": "^0.17.6",
+    "@types/pg": "^8.23.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   }
 }
