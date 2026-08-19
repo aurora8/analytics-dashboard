@@ -38,6 +38,9 @@ export class VerificationSession {
   @Column({ type: 'varchar', length: 32, default: 'in_progress' })
   status: VerificationStatus;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  ipAddress: string | null;
+
   @Index()
   @CreateDateColumn({ type: 'timestamptz' })
   startedAt: Date;

@@ -64,6 +64,7 @@ export class LoggingService {
   ): Promise<VerificationSession> {
     const session = this.verificationRepo.create({
       verifierId: dto.verifierId,
+      ipAddress: dto.ipAddress ?? null,
       stage: 'selector',
       status: 'in_progress',
     });
