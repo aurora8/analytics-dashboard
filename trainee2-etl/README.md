@@ -23,12 +23,10 @@ raw data into fraud flags, geo/IP breakdowns, and a weekly PDF+CSV report.
   a brute-force pattern), and authentication from an unusually high number
   of distinct IPs (default 3, a credential-sharing/stuffing signal). All
   three thresholds are configurable.
-- **`src/geo/analyze.ts`** — aggregates auth events by country of origin
-  using `geoip-lite`. **Scope note**: IP address is only captured on
-  `auth_event` today (login/MFA activity), not on `verification_session`
-  — so this reflects where *authentication* traffic originates, not
-  literally every verification request. Extending IP capture to
-  `verification_session` would need a small additive column there.
+- **`src/geo/analyze.ts`** — aggregates auth events *and* verification
+  sessions by country of origin using `geoip-lite`. Both `auth_event`
+  and `verification_session` carry an `ipAddress` field, so this covers
+  where verification requests come from, not just login/MFA activity.
 - **`src/reports/weekly.ts`** — pulls the last 7 days, generates a PDF
   summary (adoption, latency, fraud, geo) and a CSV of flagged users.
 

@@ -32,8 +32,8 @@ async function main(): Promise<void> {
   console.log('\nFraud flags:');
   console.log(JSON.stringify(detectFraud(authEvents), null, 2));
 
-  console.log('\nGeo breakdown:');
-  console.log(JSON.stringify(analyzeGeo(authEvents), null, 2));
+  console.log('\nGeo breakdown (auth + verification activity):');
+  console.log(JSON.stringify(analyzeGeo([...authEvents, ...verificationSessions]), null, 2));
 
   console.log('\nGenerating weekly report (PDF + CSV)...');
   const outputDir = path.join(__dirname, '..', '..', 'output');

@@ -47,7 +47,7 @@ export async function generateWeeklyReport(
   const issuanceLatency = summarizeLatency(issuanceSessions);
   const verificationLatency = summarizeLatency(verificationSessions);
   const fraudFlags = detectFraud(authEvents);
-  const geo = analyzeGeo(authEvents);
+  const geo = analyzeGeo([...authEvents, ...verificationSessions]);
 
   fs.mkdirSync(outputDir, { recursive: true });
   const dateStamp = rangeEnd.toISOString().slice(0, 10);

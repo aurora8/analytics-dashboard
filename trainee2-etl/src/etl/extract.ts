@@ -25,6 +25,7 @@ export interface RawVerificationSession {
   verifierId: string;
   stage: string;
   status: string;
+  ipAddress: string | null;
   startedAt: Date;
   completedAt: Date | null;
   latencyMs: number | null;
@@ -96,7 +97,7 @@ export async function extractVerificationSessions(
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const { rows } = await pool.query<RawVerificationSession>(
-    `SELECT id, "verifierId", stage, status, "startedAt", "completedAt", "latencyMs"
+    `SELECT id, "verifierId", stage, status, "ipAddress", "startedAt", "completedAt", "latencyMs"
      FROM verification_session ${where}
      ORDER BY "startedAt" ASC`,
     params,

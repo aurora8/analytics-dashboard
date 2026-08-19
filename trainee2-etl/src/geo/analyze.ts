@@ -1,25 +1,26 @@
 import geoip from 'geoip-lite';
-import { RawAuthEvent } from '../etl/extract';
 
 export interface GeoCount {
   country: string;
   count: number;
 }
 
+export interface IpSource {
+  ipAddress: string | null;
+}
+
 /**
- * Aggregates auth events by country of origin, using each event's IP
- * address. Scope note: IP address is only captured on auth_event today
- * (login/MFA activity), not on verification_session — so this reflects
- * where authentication traffic originates, not literally every
- * verification request. Extending IP capture to verification_session
- * would need a small additive column there.
+ * Aggregates any collection of IP-bearing records (auth events,
+ * verification sessions, or both combined) by country of origin.
+ * Pass in a combined array to get the full picture across both
+ * authentication and verification activity.
  */
-export function analyzeGeo(events: RawAuthEvent[]): GeoCount[] {
+export function analyzeGeo(sources: IpSource[]): GeoCount[] {
   const counts = new Map<string, number>();
 
-  for (const event of events) {
-    if (!event.ipAddress) continue;
-    const lookup = geoip.lookup(event.ipAddress);
+  for (const source of sources) {
+    if (!source.ipAddress) continue;
+    const lookup = geoip.lookup(source.ipAddress);
     // Some anycast IPs (e.g. 1.1.1.1) resolve to a record with an empty
     // country string rather than a null lookup, so check for both.
     const country = lookup?.country ? lookup.country : 'Unknown';

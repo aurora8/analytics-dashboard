@@ -19,6 +19,7 @@ function verification(status: string, latencyMs: number | null = null): RawVerif
     verifierId: 'ver-1',
     stage: 'selector',
     status,
+    ipAddress: null,
     startedAt: new Date(),
     completedAt: null,
     latencyMs,

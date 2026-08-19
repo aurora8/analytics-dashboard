@@ -47,4 +47,20 @@ describe('analyzeGeo', () => {
   it('returns an empty array when there are no events with IPs', () => {
     expect(analyzeGeo([event(null)])).toEqual([]);
   });
+
+  it('also works with verification sessions, and with both sources combined', () => {
+    const verificationSession = {
+      id: 1,
+      verifierId: 'ver-1',
+      stage: 'selector',
+      status: 'in_progress',
+      ipAddress: '8.8.8.8',
+      startedAt: new Date(),
+      completedAt: null,
+      latencyMs: null,
+    };
+    const result = analyzeGeo([event('8.8.8.8'), verificationSession]);
+    expect(result).toHaveLength(1);
+    expect(result[0].count).toBe(2);
+  });
 });
