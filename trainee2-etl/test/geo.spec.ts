@@ -1,15 +1,50 @@
-import { summarizeIpLocations } from '../src/geo/analyze';
+import { analyzeGeo } from '../src/geo/analyze';
+import { RawAuthEvent } from '../src/etl/extract';
 
-describe('summarizeIpLocations', () => {
-  it('groups counts by resolved location', () => {
-    // Well-known public test IPs so this doesn't depend on live geo data drifting.
-    const ips = ['8.8.8.8', '8.8.8.8', null];
-    const result = summarizeIpLocations(ips);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0].count).toBe(2);
+let nextId = 1;
+function event(ipAddress: string | null): RawAuthEvent {
+  return {
+    id: nextId++,
+    eventType: 'login_success',
+    userId: 'u1',
+    issuerId: null,
+    verifierId: null,
+    ipAddress,
+    createdAt: new Date(),
+  };
+}
+
+describe('analyzeGeo', () => {
+  it('resolves known public IPs to a real country code', () => {
+    const result = analyzeGeo([event('8.8.8.8')]);
+    expect(result).toHaveLength(1);
+    expect(result[0].country).not.toBe('Unknown');
+    expect(result[0].country).toMatch(/^[A-Z]{2}$/);
   });
 
-  it('returns an empty array for no IPs', () => {
-    expect(summarizeIpLocations([null, null])).toEqual([]);
+  it('groups and counts by country, sorted descending', () => {
+    const result = analyzeGeo([
+      event('8.8.8.8'),
+      event('8.8.4.4'), // also Google, same country
+      event(null), // no IP — should be skipped entirely
+    ]);
+    expect(result.length).toBeGreaterThanOrEqual(1);
+    expect(result[0].count).toBeGreaterThanOrEqual(result[result.length - 1].count);
+    const total = result.reduce((sum, r) => sum + r.count, 0);
+    expect(total).toBe(2);
+  });
+
+  it('marks unresolvable private IPs as Unknown', () => {
+    const result = analyzeGeo([event('10.0.0.1')]);
+    expect(result).toEqual([{ country: 'Unknown', count: 1 }]);
+  });
+
+  it('marks IPs that resolve with an empty country string as Unknown (e.g. some anycast IPs)', () => {
+    const result = analyzeGeo([event('1.1.1.1')]);
+    expect(result).toEqual([{ country: 'Unknown', count: 1 }]);
+  });
+
+  it('returns an empty array when there are no events with IPs', () => {
+    expect(analyzeGeo([event(null)])).toEqual([]);
   });
 });

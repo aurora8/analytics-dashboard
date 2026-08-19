@@ -1,62 +1,65 @@
-import {
-  flagExcessiveMfaFailures,
-  flagExcessiveLoginFailures,
-  flagDistinctIpFanOut,
-} from '../src/fraud/detect';
-import { CleanAuthEvent } from '../src/etl/transform';
+import { detectFraud } from '../src/fraud/detect';
+import { RawAuthEvent } from '../src/etl/extract';
 
-const from = new Date('2026-08-01');
-const to = new Date('2026-08-08');
-
-function event(userId: string, eventType: string, ip: string | null = '1.1.1.1'): CleanAuthEvent {
-  return { userId, eventType, ip, timestamp: new Date() };
+let nextId = 1;
+function event(
+  eventType: string,
+  userId: string | null,
+  ipAddress: string | null = null,
+): RawAuthEvent {
+  return {
+    id: nextId++,
+    eventType,
+    userId,
+    issuerId: null,
+    verifierId: null,
+    ipAddress,
+    createdAt: new Date(),
+  };
 }
 
-describe('flagExcessiveMfaFailures', () => {
-  it('flags a user with 3+ mfa_failure events', () => {
+describe('detectFraud', () => {
+  it('flags a user with excessive MFA failures', () => {
     const events = [
-      event('u1', 'mfa_failure'),
-      event('u1', 'mfa_failure'),
-      event('u1', 'mfa_failure'),
-      event('u2', 'mfa_failure'),
+      event('mfa_failure', 'u1'),
+      event('mfa_failure', 'u1'),
+      event('mfa_failure', 'u1'),
+      event('mfa_failure', 'u2'), // only 1 — should not be flagged
     ];
-    const flags = flagExcessiveMfaFailures(events, from, to);
-    expect(flags).toHaveLength(1);
-    expect(flags[0].userId).toBe('u1');
-    expect(flags[0].count).toBe(3);
+    const flags = detectFraud(events, { mfaFailureThreshold: 3 });
+    expect(flags).toContainEqual(
+      expect.objectContaining({ userId: 'u1', reason: 'excessive_mfa_failures', count: 3 }),
+    );
+    expect(flags.find((f) => f.userId === 'u2')).toBeUndefined();
   });
 
-  it('does not flag users under the threshold', () => {
-    const events = [event('u1', 'mfa_failure'), event('u1', 'mfa_failure')];
-    expect(flagExcessiveMfaFailures(events, from, to)).toHaveLength(0);
+  it('flags a user with excessive login failures', () => {
+    const events = Array.from({ length: 5 }, () => event('login_failure', 'u3'));
+    const flags = detectFraud(events, { loginFailureThreshold: 5 });
+    expect(flags).toContainEqual(
+      expect.objectContaining({ userId: 'u3', reason: 'excessive_login_failures', count: 5 }),
+    );
   });
-});
 
-describe('flagExcessiveLoginFailures', () => {
-  it('flags a user with 5+ login_failure events', () => {
-    const events = Array.from({ length: 5 }, () => event('u1', 'login_failure'));
-    const flags = flagExcessiveLoginFailures(events, from, to);
-    expect(flags).toHaveLength(1);
-    expect(flags[0].count).toBe(5);
-  });
-});
-
-describe('flagDistinctIpFanOut', () => {
-  it('flags a user authenticating from more than 4 distinct IPs', () => {
+  it('flags a user authenticating from many distinct IPs', () => {
     const events = [
-      event('u1', 'login_success', '1.1.1.1'),
-      event('u1', 'login_success', '2.2.2.2'),
-      event('u1', 'login_success', '3.3.3.3'),
-      event('u1', 'login_success', '4.4.4.4'),
-      event('u1', 'login_success', '5.5.5.5'),
+      event('login_success', 'u4', '1.1.1.1'),
+      event('login_success', 'u4', '2.2.2.2'),
+      event('login_success', 'u4', '3.3.3.3'),
     ];
-    const flags = flagDistinctIpFanOut(events, from, to);
-    expect(flags).toHaveLength(1);
-    expect(flags[0].count).toBe(5);
+    const flags = detectFraud(events, { distinctIpThreshold: 3 });
+    expect(flags).toContainEqual(
+      expect.objectContaining({ userId: 'u4', reason: 'multiple_ips', count: 3 }),
+    );
   });
 
-  it('ignores events with no IP', () => {
-    const events = [event('u1', 'login_success', null), event('u1', 'login_success', null)];
-    expect(flagDistinctIpFanOut(events, from, to)).toHaveLength(0);
+  it('returns no flags for clean activity', () => {
+    const events = [event('login_success', 'u5', '1.1.1.1'), event('mfa_success', 'u5')];
+    expect(detectFraud(events)).toEqual([]);
+  });
+
+  it('ignores events with no userId', () => {
+    const events = [event('login_failure', null), event('login_failure', null)];
+    expect(detectFraud(events, { loginFailureThreshold: 1 })).toEqual([]);
   });
 });

@@ -1,34 +1,64 @@
-import { cleanAuthEvents, cleanSessions } from '../src/etl/transform';
-import { AuthEventRow, SessionRow } from '../src/etl/extract';
+import { summarizeAdoption, summarizeLatency } from '../src/etl/transform';
+import { RawIssuanceSession, RawVerificationSession } from '../src/etl/extract';
 
-describe('cleanAuthEvents', () => {
-  it('drops rows missing userId or eventType', () => {
-    const rows: AuthEventRow[] = [
-      { id: '1', userId: 'u1', eventType: 'login_success', ipAddress: '1.2.3.4', createdAt: new Date() },
-      { id: '2', userId: '', eventType: 'login_success', ipAddress: null, createdAt: new Date() },
-    ];
-    const result = cleanAuthEvents(rows);
-    expect(result).toHaveLength(1);
-    expect(result[0].userId).toBe('u1');
+function issuance(status: string, latencyMs: number | null = null): RawIssuanceSession {
+  return {
+    id: 1,
+    issuerId: 'iss-1',
+    status,
+    credentialType: null,
+    startedAt: new Date(),
+    completedAt: null,
+    latencyMs,
+  };
+}
+
+function verification(status: string, latencyMs: number | null = null): RawVerificationSession {
+  return {
+    id: 1,
+    verifierId: 'ver-1',
+    stage: 'selector',
+    status,
+    startedAt: new Date(),
+    completedAt: null,
+    latencyMs,
+  };
+}
+
+describe('summarizeAdoption', () => {
+  it('counts issuance and verification sessions by status', () => {
+    const result = summarizeAdoption(
+      [issuance('started'), issuance('completed'), issuance('completed'), issuance('failed')],
+      [verification('in_progress'), verification('completed')],
+    );
+
+    expect(result.issuance).toEqual({ total: 4, started: 1, completed: 2, failed: 1 });
+    expect(result.verification).toEqual({ total: 2, inProgress: 1, completed: 1, failed: 0 });
   });
 
-  it('normalizes empty-string IPs to null', () => {
-    const rows: AuthEventRow[] = [
-      { id: '1', userId: 'u1', eventType: 'login_success', ipAddress: '  ', createdAt: new Date() },
-    ];
-    expect(cleanAuthEvents(rows)[0].ip).toBeNull();
+  it('handles empty input', () => {
+    const result = summarizeAdoption([], []);
+    expect(result.issuance.total).toBe(0);
+    expect(result.verification.total).toBe(0);
   });
 });
 
-describe('cleanSessions', () => {
-  it('buckets latency into fast/normal/slow/unknown', () => {
-    const rows: SessionRow[] = [
-      { id: '1', ownerId: 'o1', holderDid: 'did:1', status: 'token_issued', createdAt: new Date(), completedAt: null, latencyMs: 500 },
-      { id: '2', ownerId: 'o1', holderDid: 'did:2', status: 'token_issued', createdAt: new Date(), completedAt: null, latencyMs: 2500 },
-      { id: '3', ownerId: 'o1', holderDid: 'did:3', status: 'token_issued', createdAt: new Date(), completedAt: null, latencyMs: 9000 },
-      { id: '4', ownerId: 'o1', holderDid: 'did:4', status: 'token_issued', createdAt: new Date(), completedAt: null, latencyMs: null },
-    ];
-    const result = cleanSessions(rows);
-    expect(result.map((r) => r.durationBucket)).toEqual(['fast', 'normal', 'slow', 'unknown']);
+describe('summarizeLatency', () => {
+  it('computes avg/min/max, ignoring null latency', () => {
+    const result = summarizeLatency([
+      issuance('completed', 100),
+      issuance('completed', 300),
+      issuance('started', null),
+    ]);
+    expect(result.sampleSize).toBe(2);
+    expect(result.avgLatencyMs).toBe(200);
+    expect(result.minLatencyMs).toBe(100);
+    expect(result.maxLatencyMs).toBe(300);
+  });
+
+  it('returns nulls when there is no latency data', () => {
+    const result = summarizeLatency([issuance('started', null)]);
+    expect(result.sampleSize).toBe(0);
+    expect(result.avgLatencyMs).toBeNull();
   });
 });
