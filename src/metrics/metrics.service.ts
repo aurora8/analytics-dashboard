@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthEvent } from '../entities/auth-event.entity';
@@ -67,6 +67,9 @@ export class MetricsService {
 
   /** Funnel chart: selector -> deeplink -> wallet approval -> token issuance. */
   async getFunnel(kind: 'verification' | 'issuance', q: MetricsQueryDto) {
+    if (kind !== 'verification' && kind !== 'issuance') {
+      throw new BadRequestException(`kind must be 'verification' or 'issuance'`);
+    }
     const repo = kind === 'verification' ? this.verificationRepo : this.issuanceRepo;
     const alias = kind === 'verification' ? 'v' : 'i';
     const qb = this.applyDateRange(repo.createQueryBuilder(alias), alias, q);
@@ -92,6 +95,9 @@ export class MetricsService {
 
   /** Latency line chart, bucketed by day. */
   async getLatency(kind: 'verification' | 'issuance', q: MetricsQueryDto) {
+    if (kind !== 'verification' && kind !== 'issuance') {
+      throw new BadRequestException(`kind must be 'verification' or 'issuance'`);
+    }
     const repo = kind === 'verification' ? this.verificationRepo : this.issuanceRepo;
     const alias = kind === 'verification' ? 'v' : 'i';
     const qb = this.applyDateRange(
