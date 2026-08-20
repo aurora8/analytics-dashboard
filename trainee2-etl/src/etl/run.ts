@@ -14,7 +14,8 @@ import { pool } from '../db/pool';
  * rather than shelling out to this file.
  */
 async function main() {
-  const days = Number(process.argv.find((a) => a.startsWith('--days='))?.split('=')[1] ?? 7);
+  const daysFlagIndex = process.argv.indexOf('--days');
+  const days = daysFlagIndex !== -1 && process.argv[daysFlagIndex + 1] ? Number(process.argv[daysFlagIndex + 1]) : 7;
   const to = new Date();
   const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
 

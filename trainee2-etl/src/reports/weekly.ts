@@ -29,6 +29,7 @@ async function main() {
   const authClean = cleanAuthEvents(authRaw);
   const verClean = cleanSessions(verRaw);
   const issClean = cleanSessions(issRaw);
+
   const fraudFlags = runAllFraudRules(authClean, from, to);
   const geoSummary = summarizeIpLocations(authRaw.map((e) => e.ipAddress));
 
@@ -43,7 +44,8 @@ async function main() {
   const outPath = path.join(outDir, `weekly-report-${to.toISOString().slice(0, 10)}.pdf`);
 
   const doc = new PDFDocument({ margin: 50 });
-  doc.pipe(fs.createWriteStream(outPath));
+  const stream = fs.createWriteStream(outPath);
+  doc.pipe(stream);
 
   doc.fontSize(20).text('Weekly Analytics Report', { align: 'center' });
   doc.fontSize(10).fillColor('gray').text(
@@ -85,8 +87,11 @@ async function main() {
   }
 
   doc.end();
+  await new Promise<void>((resolve, reject) => {
+    stream.on('finish', resolve);
+    stream.on('error', reject);
+  });
 
-  await new Promise((resolve) => doc.on('end', resolve));
   console.log(`Weekly report written to ${outPath}`);
   await pool.end();
 }
