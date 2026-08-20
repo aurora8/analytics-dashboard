@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthEvent } from '../entities/auth-event.entity';
@@ -67,6 +67,9 @@ export class MetricsService {
 
   /** Funnel chart: selector -> deeplink -> wallet approval -> token issuance. */
   async getFunnel(kind: 'verification' | 'issuance', q: MetricsQueryDto) {
+    if (kind !== 'verification' && kind !== 'issuance') {
+      throw new BadRequestException(`kind must be 'verification' or 'issuance'`);
+    }
     const repo = kind === 'verification' ? this.verificationRepo : this.issuanceRepo;
     const alias = kind === 'verification' ? 'v' : 'i';
     const qb = this.applyDateRange(repo.createQueryBuilder(alias), alias, q);
@@ -75,26 +78,26 @@ export class MetricsService {
 
     const sessions = await qb.getMany();
 
-    // A session's status represents the furthest stage it reached, so a
-    // session with status "wallet_approved" counts toward every stage up
-    // to and including that one.
-    const stageIndex = (status: string) => {
-      const i = FUNNEL_STAGES.indexOf(status as any);
-      return i === -1 ? FUNNEL_STAGES.length - 1 : i; // failed/expired count as reaching their last known stage
-    };
-
     const funnel = Object.fromEntries(FUNNEL_STAGES.map((s) => [s, 0]));
+    let failed = 0;
     for (const session of sessions) {
-      const reached = stageIndex(session.status);
+      const reached = FUNNEL_STAGES.indexOf(session.status as any);
+      if (reached === -1) {
+        failed++; // 'failed' or 'expired' — stage actually reached isn't tracked
+        continue;
+      }
       FUNNEL_STAGES.forEach((stage, i) => {
         if (i <= reached) funnel[stage]++;
       });
     }
-    return { kind, stages: FUNNEL_STAGES, funnel, total: sessions.length };
+    return { kind, stages: FUNNEL_STAGES, funnel, failed, total: sessions.length };
   }
 
   /** Latency line chart, bucketed by day. */
   async getLatency(kind: 'verification' | 'issuance', q: MetricsQueryDto) {
+    if (kind !== 'verification' && kind !== 'issuance') {
+      throw new BadRequestException(`kind must be 'verification' or 'issuance'`);
+    }
     const repo = kind === 'verification' ? this.verificationRepo : this.issuanceRepo;
     const alias = kind === 'verification' ? 'v' : 'i';
     const qb = this.applyDateRange(
