@@ -1,15 +1,7 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "declaration": false,
-    "target": "ES2021",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "strict": false,
-    "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "exclude": ["node_modules", "dist", "trainee1-backend", "trainee2-etl", "trainee3-frontend"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }

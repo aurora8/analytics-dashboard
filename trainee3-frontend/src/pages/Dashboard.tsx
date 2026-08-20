@@ -9,7 +9,7 @@ import { getAuthMetrics, getFunnel, getLatency, type MetricsFilters } from "../a
 export default function Dashboard() {
   const [filters, setFilters] = useState<MetricsFilters>({});
   const [authData, setAuthData] = useState<{ label: string; success: number; failure: number }[]>([]);
-  const [funnelData, setFunnelData] = useState<{ kind: string; stages: string[]; funnel: Record<string, number>; total: number } | null>(null);
+  const [funnelData, setFunnelData] = useState<{ kind: string; stages: string[]; funnel: Record<string, number>; failed: number; total: number } | null>(null);
   const [latencyData, setLatencyData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -17,10 +17,11 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     setError("");
+    const kind = filters.method === "issuance" ? "issuance" : "verification";
     Promise.all([
       getAuthMetrics(filters),
-      getFunnel("verification", filters),
-      getLatency("verification", filters),
+      getFunnel(kind, filters),
+      getLatency(kind, filters),
     ])
       .then(([auth, funnel, latency]) => {
         const transformed = [

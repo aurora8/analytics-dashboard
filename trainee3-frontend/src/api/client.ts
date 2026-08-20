@@ -20,7 +20,9 @@ function buildParams(filters: MetricsFilters) {
   if (filters.to) params.to = filters.to;
   if (filters.issuerId) params.issuerId = filters.issuerId;
   if (filters.verifierId) params.verifierId = filters.verifierId;
-  if (filters.method) params.method = filters.method;
+  // `method` is intentionally NOT sent as a query param — the backend
+  // has no such filter. It picks which kind-specific endpoint to call
+  // instead (see Dashboard.tsx), not something the backend filters on.
   return params;
 }
 
