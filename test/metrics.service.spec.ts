@@ -92,6 +92,26 @@ describe('MetricsService', () => {
     expect(result.total).toBe(3);
   });
 
+  it('getFunnel excludes failed/expired sessions from stages, counts them separately', async () => {
+    verificationRepo.createQueryBuilder.mockReturnValue(
+      fakeQueryBuilder({
+        many: [
+          { status: 'wallet_approved' },
+          { status: 'failed' },
+          { status: 'expired' },
+        ],
+      }),
+    );
+
+    const result = await service.getFunnel('verification', {});
+    expect(result.funnel.started).toBe(1);
+    expect(result.funnel.deeplink_opened).toBe(1);
+    expect(result.funnel.wallet_approved).toBe(1);
+    expect(result.funnel.token_issued).toBe(0);
+    expect(result.failed).toBe(2);
+    expect(result.total).toBe(3);
+  });
+
   it('getLatency returns per-day averages', async () => {
     issuanceRepo.createQueryBuilder.mockReturnValue(
       fakeQueryBuilder({ raw: [{ day: '2026-08-01', avgLatencyMs: '1200' }] }),
