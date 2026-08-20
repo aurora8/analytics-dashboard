@@ -88,20 +88,18 @@ export function runAllFraudRules(events: CleanAuthEvent[], from: Date, to: Date)
 }
 
 async function main() {
-  const days = Number(process.argv.find((a) => a.startsWith('--days='))?.split('=')[1] ?? 7);
+  const daysFlagIndex = process.argv.indexOf('--days');
+  const days = daysFlagIndex !== -1 && process.argv[daysFlagIndex + 1] ? Number(process.argv[daysFlagIndex + 1]) : 7;
   const to = new Date();
   const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-
   const raw = await extractAuthEvents(from, to);
   const clean = cleanAuthEvents(raw);
   const flags = runAllFraudRules(clean, from, to);
-
   console.log(`Checked ${clean.length} auth events from the last ${days} day(s).`);
   console.log(`${flags.length} fraud flag(s) raised:`);
   for (const f of flags) {
     console.log(`  - user ${f.userId}: ${f.reason} (count: ${f.count})`);
   }
-
   await pool.end();
 }
 
