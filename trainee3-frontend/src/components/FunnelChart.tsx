@@ -1,7 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface Props {
-  data: { kind: string; stages: string[]; funnel: Record<string, number>; total: number };
+  data: { kind: string; stages: string[]; funnel: Record<string, number>; failed: number; total: number };
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -20,9 +20,9 @@ export default function FunnelChart({ data }: Props) {
   }));
 
   return (
-    <div style={{ width: "100%", height: 300 }}>
+    <div style={{ width: "100%", height: 340 }}>
       <h3>Funnel — {data.kind}</h3>
-      <ResponsiveContainer width="100%" height="90%">
+      <ResponsiveContainer width="100%" height="85%">
         <BarChart data={chartData} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" />
@@ -35,6 +35,9 @@ export default function FunnelChart({ data }: Props) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      <p style={{ color: "#888", fontSize: "13px", marginTop: "4px" }}>
+        {data.failed} failed/expired ({data.total} total sessions in this window)
+      </p>
     </div>
   );
 }
