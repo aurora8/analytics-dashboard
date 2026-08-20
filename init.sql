@@ -74,3 +74,20 @@ VALUES
   ('user-2', 'mfa_challenge', '198.51.100.20'),
   ('user-2', 'mfa_failure', '198.51.100.20'),
   ('user-2', 'mfa_failure', '198.51.100.20');
+
+INSERT INTO dids (did, owner_type, owner_id)
+SELECT did, 'issuer', id FROM issuers WHERE did = 'did:example:issuer1'
+UNION ALL
+SELECT did, 'verifier', id FROM verifiers WHERE did = 'did:example:verifier1';
+
+INSERT INTO verification_sessions (verifier_id, holder_did, status, completed_at, latency_ms)
+SELECT id, 'did:example:holder1', 'token_issued', now(), 1200 FROM verifiers WHERE did = 'did:example:verifier1';
+INSERT INTO verification_sessions (verifier_id, holder_did, status)
+SELECT id, 'did:example:holder2', 'wallet_approved' FROM verifiers WHERE did = 'did:example:verifier1';
+INSERT INTO verification_sessions (verifier_id, holder_did, status)
+SELECT id, 'did:example:holder3', 'failed' FROM verifiers WHERE did = 'did:example:verifier1';
+
+INSERT INTO issuance_sessions (issuer_id, holder_did, status, completed_at, latency_ms)
+SELECT id, 'did:example:holder1', 'token_issued', now(), 900 FROM issuers WHERE did = 'did:example:issuer1';
+INSERT INTO issuance_sessions (issuer_id, holder_did, status)
+SELECT id, 'did:example:holder2', 'deeplink_opened' FROM issuers WHERE did = 'did:example:issuer1';
