@@ -91,3 +91,71 @@ INSERT INTO issuance_sessions (issuer_id, holder_did, status, completed_at, late
 SELECT id, 'did:example:holder1', 'token_issued', now(), 900 FROM issuers WHERE did = 'did:example:issuer1';
 INSERT INTO issuance_sessions (issuer_id, holder_did, status)
 SELECT id, 'did:example:holder2', 'deeplink_opened' FROM issuers WHERE did = 'did:example:issuer1';
+
+-- Bulk realistic-volume seed data, layered on top of the small example rows above
+INSERT INTO issuers (name, did) VALUES
+  ('Springfield College', 'did:example:issuer2'),
+  ('Riverside Health', 'did:example:issuer3');
+
+INSERT INTO verifiers (name, did) VALUES
+  ('Downtown Bank', 'did:example:verifier2'),
+  ('CityHire Recruiting', 'did:example:verifier3');
+
+INSERT INTO dids (did, owner_type, owner_id)
+SELECT did, 'issuer', id FROM issuers WHERE did IN ('did:example:issuer2', 'did:example:issuer3')
+UNION ALL
+SELECT did, 'verifier', id FROM verifiers WHERE did IN ('did:example:verifier2', 'did:example:verifier3');
+
+-- 80 verification sessions over the last 14 days, weighted toward completion
+INSERT INTO verification_sessions (verifier_id, holder_did, status, created_at, completed_at, latency_ms)
+SELECT
+  v.id,
+  'did:example:holder' || gs,
+  s.status,
+  now() - (random() * 14) * interval '1 day',
+  CASE WHEN s.status IN ('token_issued', 'wallet_approved') THEN now() ELSE NULL END,
+  CASE WHEN s.status = 'token_issued' THEN (800 + random() * 2500)::int ELSE NULL END
+FROM generate_series(1, 80) AS gs
+CROSS JOIN LATERAL (SELECT id FROM verifiers ORDER BY random() LIMIT 1) v
+CROSS JOIN LATERAL (
+  SELECT (ARRAY['token_issued','token_issued','token_issued','token_issued','token_issued',
+                'wallet_approved','wallet_approved',
+                'deeplink_opened',
+                'started',
+                'failed','expired'])[floor(random()*11)::int + 1] AS status
+) s;
+
+-- 50 issuance sessions, same pattern
+INSERT INTO issuance_sessions (issuer_id, holder_did, status, created_at, completed_at, latency_ms)
+SELECT
+  i.id,
+  'did:example:holder' || (gs + 1000),
+  s.status,
+  now() - (random() * 14) * interval '1 day',
+  CASE WHEN s.status IN ('token_issued', 'wallet_approved') THEN now() ELSE NULL END,
+  CASE WHEN s.status = 'token_issued' THEN (600 + random() * 1800)::int ELSE NULL END
+FROM generate_series(1, 50) AS gs
+CROSS JOIN LATERAL (SELECT id FROM issuers ORDER BY random() LIMIT 1) i
+CROSS JOIN LATERAL (
+  SELECT (ARRAY['token_issued','token_issued','token_issued','token_issued','token_issued',
+                'wallet_approved','wallet_approved',
+                'deeplink_opened',
+                'started',
+                'failed','expired'])[floor(random()*11)::int + 1] AS status
+) s;
+
+-- 200 auth events across 30 users over the last 14 days
+INSERT INTO auth_events (user_id, event_type, ip_address, created_at)
+SELECT
+  'user-' || (1 + floor(random() * 30))::int,
+  e.event_type,
+  ('203.0.113.' || (1 + floor(random() * 254))::int)::inet,
+  now() - (random() * 14) * interval '1 day'
+FROM generate_series(1, 200) AS gs
+CROSS JOIN LATERAL (
+  SELECT (ARRAY['login_attempt','login_attempt','login_success','login_success','login_success',
+                'login_failure',
+                'mfa_challenge','mfa_challenge',
+                'mfa_success','mfa_success',
+                'mfa_failure'])[floor(random()*11)::int + 1] AS event_type
+) e;
