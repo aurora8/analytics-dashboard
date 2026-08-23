@@ -1,28 +1,38 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { MetricsService } from './metrics.service';
-import { MetricsQueryDto } from './dto/metrics-query.dto';
+import { TopTitlesQueryDto } from './dto/top-titles-query.dto';
 
 @Controller('metrics')
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 
   @Get('overview')
-  getOverview(@Query() query: MetricsQueryDto) {
-    return this.metricsService.getOverview(query);
+  getOverview() {
+    return this.metricsService.getOverview();
   }
 
-  @Get('auth')
-  getAuth(@Query() query: MetricsQueryDto) {
-    return this.metricsService.getAuthMetrics(query);
+  @Get('genres')
+  getGenreBreakdown() {
+    return this.metricsService.getGenreBreakdown();
   }
 
-  @Get('funnel/:kind')
-  getFunnel(@Param('kind') kind: 'verification' | 'issuance', @Query() query: MetricsQueryDto) {
-    return this.metricsService.getFunnel(kind, query);
+  @Get('genre-trends')
+  getGenreTrends() {
+    return this.metricsService.getGenreTrends();
   }
 
-  @Get('latency/:kind')
-  getLatency(@Param('kind') kind: 'verification' | 'issuance', @Query() query: MetricsQueryDto) {
-    return this.metricsService.getLatency(kind, query);
+  @Get('top-titles')
+  getTopTitles(@Query() query: TopTitlesQueryDto) {
+    return this.metricsService.getTopTitles(query);
+  }
+
+  @Get('cast')
+  getCastAnalysis() {
+    return this.metricsService.getCastAnalysis();
+  }
+
+  @Get('collaborations')
+  getCollaborations() {
+    return this.metricsService.getCollaborations();
   }
 }
