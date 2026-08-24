@@ -127,6 +127,28 @@ export class MetricsService {
     );
   }
 
+  async getScatterData() {
+    return this.cached('scatter', async () => {
+      const points = await this.titleBasicsRepo.manager.query(`
+        SELECT b.runtimeminutes AS runtime, r.averagerating AS rating, r.numvotes AS votes
+        FROM title_basics b
+        JOIN title_ratings r ON b.tconst = r.tconst
+        WHERE b.titletype = 'movie' AND r.numvotes >= 10000
+          AND b.runtimeminutes IS NOT NULL AND b.runtimeminutes BETWEEN 40 AND 240
+        ORDER BY r.numvotes DESC
+        LIMIT 2000
+      `);
+      const [{ correlation }] = await this.titleBasicsRepo.manager.query(`
+        SELECT ROUND(corr(b.runtimeminutes, r.averagerating)::numeric, 3) AS correlation
+        FROM title_basics b
+        JOIN title_ratings r ON b.tconst = r.tconst
+        WHERE b.titletype = 'movie' AND r.numvotes >= 10000
+          AND b.runtimeminutes IS NOT NULL AND b.runtimeminutes BETWEEN 40 AND 240
+      `);
+      return { points, correlation };
+    });
+  }
+
   async getCollaborations() {
     return this.cached('collaborations', () =>
       this.titleBasicsRepo.manager.query(`

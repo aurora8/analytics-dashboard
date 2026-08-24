@@ -31,6 +31,11 @@ export class MetricsController {
     return this.metricsService.getCastAnalysis();
   }
 
+  @Get('scatter')
+  getScatterData() {
+    return this.metricsService.getScatterData();
+  }
+
   @Get('collaborations')
   getCollaborations() {
     return this.metricsService.getCollaborations();

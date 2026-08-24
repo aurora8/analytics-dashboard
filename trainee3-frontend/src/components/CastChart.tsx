@@ -7,7 +7,7 @@ export default function CastChart({ data }: { data: CastMember[] }) {
     .map((c) => ({ name: c.primaryname, avgRating: Number(c.avg_rating), titleCount: c.title_count }));
 
   return (
-    <div style={{ width: "100%", height: 560 }}>
+    <div style={{ width: "100%", height: 750, marginBottom: "48px" }}>
       <h2>Top actors by average rating</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" margin={{ left: 60, top: 10, bottom: 10 }}>

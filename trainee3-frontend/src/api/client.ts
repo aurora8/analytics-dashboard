@@ -61,6 +61,17 @@ export interface CastMember {
   avg_rating: string;
 }
 
+export interface ScatterPoint {
+  runtime: number;
+  rating: string;
+  votes: string;
+}
+
+export interface ScatterData {
+  points: ScatterPoint[];
+  correlation: string;
+}
+
 export interface Collaboration {
   actor_name: string;
   director_name: string;
@@ -89,6 +100,11 @@ export async function getTopTitles(filters: TopTitlesFilters = {}): Promise<TopT
 
 export async function getCastAnalysis(): Promise<CastMember[]> {
   const res = await api.get("/metrics/cast");
+  return res.data;
+}
+
+export async function getScatterData(): Promise<ScatterData> {
+  const res = await api.get("/metrics/scatter");
   return res.data;
 }
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Data & ETL (Trainee 2) — extraction, fraud rules, geo/IP analysis, weekly reports",
   "scripts": {
-    "etl": "ts-node src/etl/run.ts",
+    "etl": "ts-node src/etl/import-imdb.ts",
     "fraud": "ts-node src/fraud/detect.ts",
     "geo": "ts-node src/geo/analyze.ts",
     "report:weekly": "ts-node src/reports/weekly.ts",

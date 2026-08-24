@@ -1,106 +1,61 @@
-import PDFDocument from 'pdfkit';
-import * as fs from 'fs';
-import * as path from 'path';
-import {
-  extractAuthEvents,
-  extractVerificationSessions,
-  extractIssuanceSessions,
-} from '../etl/extract';
-import { cleanAuthEvents, cleanSessions } from '../etl/transform';
-import { runAllFraudRules } from '../fraud/detect';
-import { summarizeIpLocations } from '../geo/analyze';
+import { createObjectCsvWriter } from 'csv-writer';
 import { pool } from '../db/pool';
 
 /**
- * Builds the weekly PDF summary: adoption (session volume), fraud
- * flags, and latency — the three things the task list asks for.
- * Run with: npm run report:weekly
+ * Rewritten for IMDb: the old version summarized adoption/fraud/latency
+ * from auth events. This summarizes top genres and top movies instead —
+ * the closest equivalent for this dataset. Writes one CSV to reports/.
+ *
+ * Usage: npm run report:weekly
  */
 async function main() {
-  const to = new Date();
-  const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const genres = await pool.query(`
+    SELECT genre, ROUND(AVG(r.averagerating)::numeric, 2) AS avg_rating, COUNT(*)::int AS title_count
+    FROM title_basics b
+    JOIN title_ratings r ON b.tconst = r.tconst
+    CROSS JOIN LATERAL unnest(string_to_array(b.genres, ',')) AS genre
+    WHERE b.titletype = 'movie' AND b.genres IS NOT NULL AND r.numvotes >= 10000
+    GROUP BY genre
+    ORDER BY avg_rating DESC
+    LIMIT 5
+  `);
 
-  const [authRaw, verRaw, issRaw] = await Promise.all([
-    extractAuthEvents(from, to),
-    extractVerificationSessions(from, to),
-    extractIssuanceSessions(from, to),
-  ]);
+  const topTitles = await pool.query(`
+    SELECT b.primarytitle, b.startyear, r.averagerating, r.numvotes
+    FROM title_basics b
+    JOIN title_ratings r ON b.tconst = r.tconst
+    WHERE b.titletype = 'movie' AND r.numvotes >= 10000
+    ORDER BY r.averagerating DESC, r.numvotes DESC
+    LIMIT 10
+  `);
 
-  const authClean = cleanAuthEvents(authRaw);
-  const verClean = cleanSessions(verRaw);
-  const issClean = cleanSessions(issRaw);
-  const fraudFlags = runAllFraudRules(authClean, from, to);
-  const geoSummary = summarizeIpLocations(authRaw.map((e) => e.ipAddress));
+  const rows = [
+    ...genres.rows.map((g) => ({
+      section: 'Top genre',
+      name: g.genre,
+      detail: `avg rating ${g.avg_rating}, ${g.title_count} titles`,
+    })),
+    ...topTitles.rows.map((t) => ({
+      section: 'Top movie',
+      name: `${t.primarytitle} (${t.startyear})`,
+      detail: `rating ${t.averagerating}, ${Number(t.numvotes).toLocaleString()} votes`,
+    })),
+  ];
 
-  const avgLatency = (sessions: typeof verClean) => {
-    const withLatency = sessions.filter((s) => s.latencyMs != null);
-    if (withLatency.length === 0) return null;
-    return Math.round(withLatency.reduce((sum, s) => sum + (s.latencyMs ?? 0), 0) / withLatency.length);
-  };
-
-  const outDir = process.env.REPORTS_OUTPUT_DIR || './reports-output';
-  fs.mkdirSync(outDir, { recursive: true });
-  const outPath = path.join(outDir, `weekly-report-${to.toISOString().slice(0, 10)}.pdf`);
-
-  const doc = new PDFDocument({ margin: 50 });
-  doc.pipe(fs.createWriteStream(outPath));
-
-  doc.fontSize(20).text('Weekly Analytics Report', { align: 'center' });
-  doc.fontSize(10).fillColor('gray').text(
-    `${from.toDateString()} — ${to.toDateString()}`,
-    { align: 'center' },
-  );
-  doc.moveDown(2);
-
-  section(doc, 'Adoption');
-  bullet(doc, `Verification sessions: ${verClean.length}`);
-  bullet(doc, `Issuance sessions: ${issClean.length}`);
-  bullet(doc, `Auth events: ${authClean.length}`);
-  doc.moveDown();
-
-  section(doc, 'Latency');
-  const verAvg = avgLatency(verClean);
-  const issAvg = avgLatency(issClean);
-  bullet(doc, `Verification avg latency: ${verAvg != null ? verAvg + ' ms' : 'no data'}`);
-  bullet(doc, `Issuance avg latency: ${issAvg != null ? issAvg + ' ms' : 'no data'}`);
-  doc.moveDown();
-
-  section(doc, 'Fraud Flags');
-  if (fraudFlags.length === 0) {
-    bullet(doc, 'No fraud flags raised this week.');
-  } else {
-    for (const f of fraudFlags) {
-      bullet(doc, `User ${f.userId}: ${f.reason} (count: ${f.count})`);
-    }
-  }
-  doc.moveDown();
-
-  section(doc, 'Geo Breakdown (auth events by IP)');
-  if (geoSummary.length === 0) {
-    bullet(doc, 'No IP-tagged events this week.');
-  } else {
-    for (const g of geoSummary) {
-      bullet(doc, `${g.country}${g.region ? '/' + g.region : ''}${g.city ? '/' + g.city : ''}: ${g.count}`);
-    }
-  }
-
-  doc.end();
-
-  await new Promise((resolve) => doc.on('end', resolve));
-  console.log(`Weekly report written to ${outPath}`);
-  await pool.end();
-}
-
-function section(doc: PDFKit.PDFDocument, title: string) {
-  doc.fontSize(14).fillColor('black').text(title, { underline: true });
-  doc.moveDown(0.5);
-}
-
-function bullet(doc: PDFKit.PDFDocument, text: string) {
-  doc.fontSize(11).fillColor('black').text(`•  ${text}`);
+  const filename = `reports/weekly-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+  const writer = createObjectCsvWriter({
+    path: filename,
+    header: [
+      { id: 'section', title: 'Section' },
+      { id: 'name', title: 'Name' },
+      { id: 'detail', title: 'Detail' },
+    ],
+  });
+  await writer.writeRecords(rows);
+  console.log(`Wrote ${rows.length} rows to ${filename}`);
 }
 
 main().catch((err) => {
-  console.error('Weekly report generation failed:', err);
+  console.error('Report failed:', err.message ?? err);
   process.exit(1);
 });
