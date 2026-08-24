@@ -7,6 +7,7 @@ import TopTitlesTable from "../components/TopTitlesTable";
 import CastChart from "../components/CastChart";
 import CollaborationsChart from "../components/CollaborationsChart";
 import RuntimeRatingScatter from "../components/RuntimeRatingScatter";
+import AiInsightButton from "../components/AiInsightButton";
 import {
   getOverview,
   getGenreBreakdown,
@@ -104,10 +105,15 @@ export default function Dashboard() {
                 </div>
               </div>
               <GenreChart data={genres} />
+              <AiInsightButton chartType="genres" />
               <GenreTrendsChart data={genreTrends} />
+              <AiInsightButton chartType="genre-trends" />
               <CastChart data={cast} />
+              <AiInsightButton chartType="cast" />
               <CollaborationsChart data={collaborations} />
+              <AiInsightButton chartType="collaborations" />
               {scatter && <RuntimeRatingScatter data={scatter} />}
+              {scatter && <AiInsightButton chartType="scatter" />}
               {titlesLoading && <p>Updating top titles...</p>}
               <TopTitlesTable data={topTitles} />
             </>

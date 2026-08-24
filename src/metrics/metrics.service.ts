@@ -180,4 +180,29 @@ export class MetricsService {
       `),
     );
   }
+
+  // Placeholder for the optional "AI-powered data analysis" feature from
+  // the brief. No LLM API key is available yet, so this returns a
+  // hand-written but accurate insight per chart rather than a live call.
+  // TO GO LIVE: add an API key (e.g. ANTHROPIC_API_KEY) to .env, then
+  // replace the body below with a real call to that provider's API,
+  // passing the chart's current data in the prompt instead of chartType.
+  private static readonly INSIGHT_PLACEHOLDERS: Record<string, string> = {
+    genres:
+      'Documentaries and Film-Noir top the ratings — likely because only well-reviewed titles get made at all in those niche genres.',
+    cast: 'The highest-rated names here are mostly voice actors tied to one hit franchise, so their whole filmography sits inside consistently well-reviewed titles.',
+    collaborations:
+      'The top actor-director pairs are almost all recurring TV/anime partnerships, not one-off films — long-running shows rack up shared credits faster than movies do.',
+    scatter:
+      'Runtime and rating have only a weak positive relationship (0.29) — longer movies trend slightly higher-rated, but runtime alone explains very little of a film\u2019s success.',
+    'genre-trends':
+      'Title counts explode after 2000 across every genre — that\u2019s IMDb\u2019s own catalog growing as user submissions and digital distribution took off, not movies actually getting more common.',
+  };
+
+  async getInsight(chartType: string) {
+    return {
+      insight:
+        MetricsService.INSIGHT_PLACEHOLDERS[chartType] ?? 'AI insight not available for this chart yet.',
+    };
+  }
 }

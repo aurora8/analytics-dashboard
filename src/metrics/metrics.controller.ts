@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { MetricsService } from './metrics.service';
 import { TopTitlesQueryDto } from './dto/top-titles-query.dto';
 
@@ -39,5 +39,10 @@ export class MetricsController {
   @Get('collaborations')
   getCollaborations() {
     return this.metricsService.getCollaborations();
+  }
+
+  @Get('insight/:chartType')
+  getInsight(@Param('chartType') chartType: string) {
+    return this.metricsService.getInsight(chartType);
   }
 }
