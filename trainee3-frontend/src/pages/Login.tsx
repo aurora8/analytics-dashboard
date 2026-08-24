@@ -14,6 +14,7 @@ export default function Login() {
     e.preventDefault();
     if (username === DEMO_USERNAME && password === DEMO_PASSWORD) {
       setError("");
+      sessionStorage.setItem("loggedIn", "true");
       navigate("/dashboard");
     } else {
       setError("Invalid username or password.");

@@ -23,7 +23,8 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
   }
 
   return (
-    <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginBottom: "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <h3 style={{ margin: 0 }}>Filters</h3>
       <div>
         <label style={{ display: "block", fontSize: "12px" }}>Year from</label>
         <input
@@ -31,7 +32,7 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
           value={yearFrom}
           onChange={(e) => setYearFrom(e.target.value)}
           placeholder="e.g. 1990"
-          style={{ width: "100px" }}
+          style={{ width: "100%" }}
         />
       </div>
       <div>
@@ -41,7 +42,7 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
           value={yearTo}
           onChange={(e) => setYearTo(e.target.value)}
           placeholder="e.g. 2020"
-          style={{ width: "100px" }}
+          style={{ width: "100%" }}
         />
       </div>
       <div>
@@ -51,11 +52,17 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
           placeholder="e.g. Drama"
-          style={{ width: "140px" }}
+          style={{ width: "100%" }}
         />
       </div>
-      <button onClick={apply}>Apply</button>
-      <button onClick={clear}>Clear</button>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button type="button" onClick={apply} style={{ flex: 1 }}>
+          Apply
+        </button>
+        <button type="button" onClick={clear} style={{ flex: 1 }}>
+          Clear
+        </button>
+      </div>
     </div>
   );
 }

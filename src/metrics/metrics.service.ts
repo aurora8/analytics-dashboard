@@ -8,20 +8,32 @@ import { TopTitlesQueryDto } from './dto/top-titles-query.dto';
 export class MetricsService {
   // Simple in-memory cache: the data is a one-time import that never
   // changes, so there's no staleness risk. Clears on server restart.
-  private cache = new Map<string, unknown>();
+  //
+  // Stores the in-flight PROMISE, not just the resolved value, and sets
+  // it synchronously before any await. If two calls for the same key
+  // land close together (e.g. right after a restart, while things are
+  // slow), the second one reuses the first's pending promise instead of
+  // starting a duplicate query — this is what caused the query pile-ups
+  // seen tonight.
+  private cache = new Map<string, Promise<unknown>>();
 
   constructor(
     @InjectRepository(TitleBasics)
     private readonly titleBasicsRepo: Repository<TitleBasics>,
   ) {}
 
-  private async cached<T>(key: string, compute: () => Promise<T>): Promise<T> {
-    if (this.cache.has(key)) {
-      return this.cache.get(key) as T;
+  private cached<T>(key: string, compute: () => Promise<T>): Promise<T> {
+    if (!this.cache.has(key)) {
+      this.cache.set(
+        key,
+        compute().catch((err) => {
+          // Don't cache a failed attempt — let the next call retry.
+          this.cache.delete(key);
+          throw err;
+        }),
+      );
     }
-    const result = await compute();
-    this.cache.set(key, result);
-    return result;
+    return this.cache.get(key) as Promise<T>;
   }
 
   async getOverview() {
@@ -69,6 +81,7 @@ export class MetricsService {
         FROM title_basics b
         CROSS JOIN LATERAL unnest(string_to_array(b.genres, ',')) AS genre
         WHERE b.titletype = 'movie' AND b.startyear IS NOT NULL AND b.genres IS NOT NULL
+          AND b.startyear BETWEEN 1900 AND 2019
         GROUP BY genre, decade
         ORDER BY decade, genre
       `),
