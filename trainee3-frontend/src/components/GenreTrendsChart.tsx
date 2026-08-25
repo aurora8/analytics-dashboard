@@ -1,8 +1,12 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import type { GenreTrend } from "../api/client";
 
-const LINE_COLORS = ["#2E7DD1", "#25A18E", "#D1495B", "#EDAE49", "#7A5FC7", "#3DA35D", "#E8871E", "#5C6784"];
+// Warm, coordinated tones instead of a rainbow — keeps 8 lines
+// distinguishable while staying inside the theme's palette.
+const LINE_COLORS = ["#c9a15a", "#9a4a3f", "#4a7a72", "#6e4a63", "#d4923f", "#7a8259", "#a1543a", "#8a8070"];
 const TOP_N_GENRES = 8;
+const TOOLTIP_STYLE = { background: "#2b241d", border: "1px solid #3a3128", borderRadius: 4, color: "#f1e9dc" };
+const AXIS_TICK = { fill: "#a89c8c", fontSize: 12 };
 
 export default function GenreTrendsChart({ data }: { data: GenreTrend[] }) {
   // Show only the top N genres by total title count — with 20+ genres
@@ -29,15 +33,15 @@ export default function GenreTrendsChart({ data }: { data: GenreTrend[] }) {
   });
 
   return (
-    <div style={{ width: "100%", height: 420, marginBottom: "48px" }}>
+    <div className="chart-card" style={{ width: "100%", height: 420 }}>
       <h2>Yearly trends (top {TOP_N_GENRES} genres by decade)</h2>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="88%">
         <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="decade" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3a3128" />
+          <XAxis dataKey="decade" tick={AXIS_TICK} />
+          <YAxis tick={AXIS_TICK} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} />
+          <Legend wrapperStyle={{ color: "#a89c8c", fontSize: 12 }} />
           {topGenres.map((genre, i) => (
             <Line
               key={genre}

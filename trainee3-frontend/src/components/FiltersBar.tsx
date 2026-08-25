@@ -22,11 +22,13 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
     onApply({ limit: 20 });
   }
 
+  const labelStyle = { display: "block", fontSize: "12px", color: "#a89c8c", marginBottom: "4px" };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <h3 style={{ margin: 0 }}>Filters</h3>
       <div>
-        <label style={{ display: "block", fontSize: "12px" }}>Year from</label>
+        <label style={labelStyle}>Year from</label>
         <input
           type="number"
           value={yearFrom}
@@ -36,7 +38,7 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
         />
       </div>
       <div>
-        <label style={{ display: "block", fontSize: "12px" }}>Year to</label>
+        <label style={labelStyle}>Year to</label>
         <input
           type="number"
           value={yearTo}
@@ -46,7 +48,7 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
         />
       </div>
       <div>
-        <label style={{ display: "block", fontSize: "12px" }}>Genre</label>
+        <label style={labelStyle}>Genre</label>
         <input
           type="text"
           value={genre}
@@ -56,7 +58,7 @@ export default function FiltersBar({ onApply }: { onApply: (filters: TopTitlesFi
         />
       </div>
       <div style={{ display: "flex", gap: "8px" }}>
-        <button type="button" onClick={apply} style={{ flex: 1 }}>
+        <button type="button" className="primary" onClick={apply} style={{ flex: 1 }}>
           Apply
         </button>
         <button type="button" onClick={clear} style={{ flex: 1 }}>

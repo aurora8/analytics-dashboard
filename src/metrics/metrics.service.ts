@@ -181,28 +181,41 @@ export class MetricsService {
     );
   }
 
-  // Placeholder for the optional "AI-powered data analysis" feature from
-  // the brief. No LLM API key is available yet, so this returns a
-  // hand-written but accurate insight per chart rather than a live call.
+  // Free-form "ask anything about this data" feature from the brief.
+  //
   // TO GO LIVE: add an API key (e.g. ANTHROPIC_API_KEY) to .env, then
-  // replace the body below with a real call to that provider's API,
-  // passing the chart's current data in the prompt instead of chartType.
-  private static readonly INSIGHT_PLACEHOLDERS: Record<string, string> = {
-    genres:
-      'Documentaries and Film-Noir top the ratings — likely because only well-reviewed titles get made at all in those niche genres.',
-    cast: 'The highest-rated names here are mostly voice actors tied to one hit franchise, so their whole filmography sits inside consistently well-reviewed titles.',
-    collaborations:
-      'The top actor-director pairs are almost all recurring TV/anime partnerships, not one-off films — long-running shows rack up shared credits faster than movies do.',
-    scatter:
-      'Runtime and rating have only a weak positive relationship (0.29) — longer movies trend slightly higher-rated, but runtime alone explains very little of a film\u2019s success.',
-    'genre-trends':
-      'Title counts explode after 2000 across every genre — that\u2019s IMDb\u2019s own catalog growing as user submissions and digital distribution took off, not movies actually getting more common.',
-  };
+  // replace the body below with a real LLM call. Build the prompt from
+  // the SAME data gathered here — overview, genre breakdown, and top
+  // titles are already fetched below as `context`; pass that plus
+  // `question` to the model and return its response instead of running
+  // the keyword matching. That keeps every answer grounded in this
+  // database's real numbers instead of the model's general knowledge.
+  async askQuestion(question: string) {
+    const [overview, genres, topTitles] = await Promise.all([
+      this.getOverview(),
+      this.getGenreBreakdown(),
+      this.getTopTitles({ limit: 10 }),
+    ]);
+    const context = { overview, genres, topTitles };
 
-  async getInsight(chartType: string) {
-    return {
-      insight:
-        MetricsService.INSIGHT_PLACEHOLDERS[chartType] ?? 'AI insight not available for this chart yet.',
-    };
+    const q = question.toLowerCase();
+    let answer: string;
+
+    if (q.includes('how many') && (q.includes('movie') || q.includes('title'))) {
+      answer = `There are ${Number(overview.total_movies).toLocaleString()} movies and ${Number(overview.total_titles).toLocaleString()} titles total in this database.`;
+    } else if ((q.includes('best') || q.includes('highest') || q.includes('top')) && q.includes('genre')) {
+      const top = genres[0];
+      answer = `${top.genre} has the highest average rating among genres, at ${top.avg_rating}.`;
+    } else if ((q.includes('best') || q.includes('highest') || q.includes('top')) && (q.includes('movie') || q.includes('title') || q.includes('rated'))) {
+      const top = topTitles[0];
+      answer = `${top.primarytitle} (${top.startyear}) is the top-rated title right now, at ${top.averagerating}.`;
+    } else if (q.includes('average rating') || q.includes('avg rating')) {
+      answer = `The average rating across all titles is ${overview.avg_rating}.`;
+    } else {
+      answer =
+        "I can't answer open-ended questions like that without a live AI connection yet — but once an API key is added, I'll be able to use this database's real numbers to answer anything you ask.";
+    }
+
+    return { answer, context };
   }
 }

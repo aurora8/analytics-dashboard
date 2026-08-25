@@ -20,30 +20,35 @@ function exportToCsv(filename: string, rows: TopTitle[]) {
 }
 
 export default function TopTitlesTable({ data }: { data: TopTitle[] }) {
+  const cellStyle = { padding: "8px 10px", borderBottom: "1px solid #3a3128" };
+  const headerStyle = { ...cellStyle, textAlign: "left" as const, color: "#a89c8c", fontWeight: 500, fontSize: "13px" };
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Top rated movies</h2>
+    <div className="chart-card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <h2 style={{ margin: 0 }}>Top rated movies</h2>
         <button type="button" onClick={() => exportToCsv("top-titles.csv", data)}>Download filtered CSV</button>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Title</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Year</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Genres</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Rating</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Votes</th>
+            <th style={headerStyle}>Title</th>
+            <th style={headerStyle}>Year</th>
+            <th style={headerStyle}>Genres</th>
+            <th style={headerStyle}>Rating</th>
+            <th style={headerStyle}>Votes</th>
           </tr>
         </thead>
         <tbody>
           {data.map((t) => (
             <tr key={t.tconst}>
-              <td>{t.primarytitle}</td>
-              <td>{t.startyear}</td>
-              <td>{t.genres}</td>
-              <td>{t.averagerating}</td>
-              <td>{Number(t.numvotes).toLocaleString()}</td>
+              <td style={cellStyle}>{t.primarytitle}</td>
+              <td style={{ ...cellStyle, fontFamily: "var(--font-mono)", color: "#a89c8c" }}>{t.startyear}</td>
+              <td style={{ ...cellStyle, color: "#a89c8c" }}>{t.genres}</td>
+              <td style={{ ...cellStyle, fontFamily: "var(--font-mono)", color: "#c9a15a" }}>{t.averagerating}</td>
+              <td style={{ ...cellStyle, fontFamily: "var(--font-mono)", color: "#a89c8c" }}>
+                {Number(t.numvotes).toLocaleString()}
+              </td>
             </tr>
           ))}
         </tbody>

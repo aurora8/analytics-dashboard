@@ -7,7 +7,7 @@ import TopTitlesTable from "../components/TopTitlesTable";
 import CastChart from "../components/CastChart";
 import CollaborationsChart from "../components/CollaborationsChart";
 import RuntimeRatingScatter from "../components/RuntimeRatingScatter";
-import AiInsightButton from "../components/AiInsightButton";
+import AskAboutData from "../components/AskAboutData";
 import {
   getOverview,
   getGenreBreakdown,
@@ -82,39 +82,35 @@ export default function Dashboard() {
           <FiltersBar onApply={setTitleFilters} />
         </aside>
         <main className="dashboard-main">
-          {loading && <p>Loading...</p>}
-          {error && <p style={{ color: "red" }}>{error}</p>}
+          {loading && <p style={{ color: "var(--text-secondary)" }}>Loading...</p>}
+          {error && <p style={{ color: "var(--accent-red)" }}>{error}</p>}
           {!loading && !error && overview && (
             <>
-              <div style={{ display: "flex", gap: "24px", marginBottom: "24px", flexWrap: "wrap" }}>
-                <div>
+              <div style={{ display: "flex", gap: "16px", marginBottom: "28px", flexWrap: "wrap" }}>
+                <div className="stat-card">
                   <strong>{overview.total_titles.toLocaleString()}</strong>
                   <div>Total titles</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <strong>{overview.total_movies.toLocaleString()}</strong>
                   <div>Movies</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <strong>{overview.total_people.toLocaleString()}</strong>
                   <div>People</div>
                 </div>
-                <div>
+                <div className="stat-card">
                   <strong>{overview.avg_rating}</strong>
                   <div>Avg rating</div>
                 </div>
               </div>
+              <AskAboutData />
               <GenreChart data={genres} />
-              <AiInsightButton chartType="genres" />
               <GenreTrendsChart data={genreTrends} />
-              <AiInsightButton chartType="genre-trends" />
               <CastChart data={cast} />
-              <AiInsightButton chartType="cast" />
               <CollaborationsChart data={collaborations} />
-              <AiInsightButton chartType="collaborations" />
               {scatter && <RuntimeRatingScatter data={scatter} />}
-              {scatter && <AiInsightButton chartType="scatter" />}
-              {titlesLoading && <p>Updating top titles...</p>}
+              {titlesLoading && <p style={{ color: "var(--text-secondary)" }}>Updating top titles...</p>}
               <TopTitlesTable data={topTitles} />
             </>
           )}

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body } from '@nestjs/common';
 import { MetricsService } from './metrics.service';
 import { TopTitlesQueryDto } from './dto/top-titles-query.dto';
 
@@ -41,8 +41,8 @@ export class MetricsController {
     return this.metricsService.getCollaborations();
   }
 
-  @Get('insight/:chartType')
-  getInsight(@Param('chartType') chartType: string) {
-    return this.metricsService.getInsight(chartType);
+  @Post('ask')
+  askQuestion(@Body('question') question: string) {
+    return this.metricsService.askQuestion(question);
   }
 }

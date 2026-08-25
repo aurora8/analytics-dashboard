@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-page: #17130f;
+  --bg-surface: #221c17;
+  --bg-surface-hover: #2b241d;
+  --text-primary: #f1e9dc;
+  --text-secondary: #a89c8c;
+  --text-muted: #756a5c;
+  --border: #3a3128;
+  --accent-gold: #c9a15a;
+  --accent-gold-dim: #8a7038;
+  --accent-red: #9a4a3f;
+  --accent-teal: #4a7a72;
+  --accent-plum: #6e4a63;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+}
+
+/* Sprocket-hole motif: a thin strip of film-perforation dots, used
+   once, deliberately, as the nav bar's signature detail rather than
+   scattered everywhere. */
+.film-perf {
+  height: 6px;
+  background: var(--bg-page);
+  background-image: radial-gradient(circle, var(--accent-gold-dim) 1.5px, transparent 1.5px);
+  background-size: 16px 6px;
+  background-position: center;
+}
+
+button {
+  font-family: var(--font-body);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  background: var(--bg-surface-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent-gold);
+  color: #1c1712;
+  border-color: var(--accent-gold);
+  font-weight: 500;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #d9b06a;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+  font-family: var(--font-body);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}

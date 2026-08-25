@@ -1,3 +1,5 @@
+@import "../theme.css";
+
 .dashboard-layout {
   display: flex;
   gap: 24px;
@@ -12,6 +14,41 @@
 .dashboard-main {
   flex: 1;
   min-width: 0;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 18px;
+  min-width: 120px;
+}
+
+.stat-card strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--accent-gold);
+}
+
+.stat-card div {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
 }
 
 @media (max-width: 900px) {
